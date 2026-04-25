@@ -29,6 +29,11 @@
             transform: translateX(231.5px);
         }
 
+        /* 最后一页翻完后，整个书返回正中心 */
+        .book-container.final-page {
+            transform: translateX(0);
+        }
+
         .page {
             position: absolute;
             width: 100%;
@@ -112,27 +117,35 @@
 <body>
 
 <div class="book-container" id="bookContainer">
-    <div class="page" onclick="flipPage(this, true)">
+    <div class="page" onclick="flipPage(this, true, 0)">
         <div class="front"><img src="./截屏2026-04-25 15.50.13.png"></div>
-        <div class="back"><img src="./截屏2026-04-25 15.50.20.png"></div>
+        <div class="back"><img src="./截屏2026-04-25 15.50.00.png"></div>
     </div>
 
-    <div class="page" onclick="flipPage(this, false)">
-        <div class="front"><img src="./截屏2026-04-25 15.56.00.png"></div>
-        <div class="back"><img src="./截屏2026-04-25 15.55.52.png"></div>
+    <div class="page" onclick="flipPage(this, false, 1)">
+        <div class="front"><img src="./截屏2026-04-25 15.56.52.png"></div>
+        <div class="back"><img src="./截屏2026-04-25 15.55.20.png"></div>
     </div>
 </div>
 
 <script>
     const container = document.getElementById('bookContainer');
+    const pages = document.querySelectorAll('.page');
+    const totalPages = pages.length;
 
-    function flipPage(pageElement, isCover) {
+    function flipPage(pageElement, isCover, pageIndex) {
         const isFlippingToBack = !pageElement.classList.contains('flipped');
         
         if (!isFlippingToBack) {
             // 向回翻
             pageElement.classList.remove('flipped');
             if (isCover) container.classList.remove('open');
+            
+            // 如果翻回来的是最后一页，移除final-page类
+            if (pageIndex === totalPages - 1) {
+                container.classList.remove('final-page');
+            }
+            
             setTimeout(() => { 
                 pageElement.style.zIndex = pageElement.dataset.originalZ; 
             }, 600); // 延迟回归层级，避免穿插
@@ -140,11 +153,16 @@
             // 向前翻
             pageElement.classList.add('flipped');
             if (isCover) container.classList.add('open');
+            
+            // 如果翻的是最后一页，添加final-page类让书返回正中心
+            if (pageIndex === totalPages - 1) {
+                container.classList.add('final-page');
+            }
+            
             pageElement.style.zIndex = 100;
         }
     }
 
-    const pages = document.querySelectorAll('.page');
     pages.forEach((page, index) => {
         const z = pages.length - index;
         page.style.zIndex = z;
