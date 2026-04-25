@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>高级感电子书模型 - 居中修正终版</title>
+    <title>高级感电子书模型</title>
     <style>
         body {
             background-color: #000;
@@ -12,6 +12,7 @@
             height: 100vh;
             margin: 0;
             overflow: hidden;
+            /* 防止快速点击导致的蓝色选中效果 */
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -19,20 +20,13 @@
             position: relative;
             width: 463px;
             height: 770px;
+            /* 更加丝滑的容器平移 */
             transition: transform 1.2s cubic-bezier(0.28, 0.11, 0.32, 1);
-            perspective: 2500px;
-            /* 初始位置：封面居中 */
-            transform: translateX(0); 
+            perspective: 2500px; /* 增加透视深度 */
         }
 
-        /* 状态 1：中间双页展开，书脊右移半宽，使左右对称居中 */
         .book-container.open {
             transform: translateX(231.5px);
-        }
-
-        /* 状态 2：最后一页翻开后，通过左移抵消翻页位移，使封底居中 */
-        .book-container.last-page-open {
-            transform: translateX(463px);
         }
 
         .page {
@@ -41,6 +35,7 @@
             height: 100%;
             transform-origin: left;
             transform-style: preserve-3d;
+            /* 模拟纸张略带阻尼的翻转感 */
             transition: transform 1.2s cubic-bezier(0.28, 0.11, 0.32, 1);
             cursor: pointer;
         }
@@ -51,7 +46,7 @@
             height: 100%;
             backface-visibility: hidden;
             background-color: #1a1a1a;
-            box-shadow: inset 0 0 100px rgba(0,0,0,0.2);
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.2); /* 基础页面阴影 */
             overflow: hidden;
         }
 
@@ -64,6 +59,7 @@
             height: 100%;
             object-fit: cover;
             display: block;
+            /* 稍微降低图片亮度，增加质感 */
             filter: brightness(0.9);
         }
 
@@ -71,6 +67,9 @@
             transform: rotateY(-180deg);
         }
 
+        /* --- 高级感细节：动态光效 --- */
+
+        /* 模拟页面翻转时的书脊阴影 */
         .front::after, .back::after {
             content: '';
             position: absolute;
@@ -78,28 +77,47 @@
             width: 40px;
             height: 100%;
             pointer-events: none;
+            transition: opacity 1.2s;
         }
 
+        /* 正面右侧（靠近书脊处）的暗影 */
         .front::after {
             left: 0;
             background: linear-gradient(to right, rgba(0,0,0,0.3), transparent);
+            opacity: 1;
         }
 
+        /* 翻过去后，背面左侧（靠近书脊处）的深色褶皱影 */
         .back::after {
             left: 0;
             background: linear-gradient(to right, rgba(0,0,0,0.6), transparent);
         }
+
+        /* 翻转过程中的高光掠过效果（可选） */
+        .page:not(.flipped) .front::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 200%; height: 100%;
+            background: linear-gradient(110deg, rgba(255,255,255,0) 20%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0) 80%);
+            transform: translateX(-100%);
+            transition: transform 1.2s;
+            z-index: 2;
+        }
+        .page.flipped .front::before {
+            transform: translateX(100%);
+        }
+
     </style>
 </head>
 <body>
 
 <div class="book-container" id="bookContainer">
-    <div class="page" onclick="flipPage(this)">
+    <div class="page" onclick="flipPage(this, true)">
         <div class="front"><img src="./截屏2026-04-25 15.50.13.png"></div>
         <div class="back"><img src="./截屏2026-04-25 15.50.00.png"></div>
     </div>
 
-    <div class="page" onclick="flipPage(this)">
+    <div class="page" onclick="flipPage(this, false)">
         <div class="front"><img src="./截屏2026-04-25 15.56.52.png"></div>
         <div class="back"><img src="./截屏2026-04-25 15.55.20.png"></div>
     </div>
@@ -107,45 +125,26 @@
 
 <script>
     const container = document.getElementById('bookContainer');
-    const pages = document.querySelectorAll('.page');
 
-    function flipPage(pageElement) {
-        const allPages = Array.from(pages);
-        const index = allPages.indexOf(pageElement);
+    function flipPage(pageElement, isCover) {
         const isFlippingToBack = !pageElement.classList.contains('flipped');
         
-        const isFirstPage = (index === 0);
-        const isLastPage = (index === allPages.length - 1);
-
-        if (isFlippingToBack) {
-            pageElement.classList.add('flipped');
-            pageElement.style.zIndex = 100 + index;
-
-            if (isFirstPage) {
-                container.classList.add('open');
-            }
-            if (isLastPage) {
-                // 关键点：最后一页翻开时，容器需要更大幅度的位移来把页面“拉回”中心
-                container.classList.remove('open');
-                container.classList.add('last-page-open');
-            }
-        } else {
+        if (!isFlippingToBack) {
+            // 向回翻
             pageElement.classList.remove('flipped');
-            
-            if (isFirstPage) {
-                container.classList.remove('open');
-            }
-            if (isLastPage) {
-                container.classList.remove('last-page-open');
-                container.classList.add('open');
-            }
-
+            if (isCover) container.classList.remove('open');
             setTimeout(() => { 
                 pageElement.style.zIndex = pageElement.dataset.originalZ; 
-            }, 600);
+            }, 600); // 延迟回归层级，避免穿插
+        } else {
+            // 向前翻
+            pageElement.classList.add('flipped');
+            if (isCover) container.classList.add('open');
+            pageElement.style.zIndex = 100;
         }
     }
 
+    const pages = document.querySelectorAll('.page');
     pages.forEach((page, index) => {
         const z = pages.length - index;
         page.style.zIndex = z;
