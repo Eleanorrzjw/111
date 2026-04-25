@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>高级感电子书模型</title>
+    <title>高级感电子书模型 - 全自动居中版</title>
     <style>
         body {
             background-color: #000;
@@ -12,7 +12,6 @@
             height: 100vh;
             margin: 0;
             overflow: hidden;
-            /* 防止快速点击导致的蓝色选中效果 */
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -20,18 +19,14 @@
             position: relative;
             width: 463px;
             height: 770px;
-            /* 更加丝滑的容器平移 */
+            /* 丝滑的平移过渡 */
             transition: transform 1.2s cubic-bezier(0.28, 0.11, 0.32, 1);
-            perspective: 2500px; /* 增加透视深度 */
+            perspective: 2500px;
         }
 
+        /* 展开状态：书脊右移半个书宽，使左右对开居中 */
         .book-container.open {
             transform: translateX(231.5px);
-        }
-
-        /* 最后一页翻完后，整个书返回正中心 */
-        .book-container.final-page {
-            transform: translateX(0);
         }
 
         .page {
@@ -40,7 +35,6 @@
             height: 100%;
             transform-origin: left;
             transform-style: preserve-3d;
-            /* 模拟纸张略带阻尼的翻转感 */
             transition: transform 1.2s cubic-bezier(0.28, 0.11, 0.32, 1);
             cursor: pointer;
         }
@@ -51,7 +45,7 @@
             height: 100%;
             backface-visibility: hidden;
             background-color: #1a1a1a;
-            box-shadow: inset 0 0 100px rgba(0,0,0,0.2); /* 基础页面阴影 */
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.2);
             overflow: hidden;
         }
 
@@ -64,7 +58,6 @@
             height: 100%;
             object-fit: cover;
             display: block;
-            /* 稍微降低图片亮度，增加质感 */
             filter: brightness(0.9);
         }
 
@@ -72,9 +65,7 @@
             transform: rotateY(-180deg);
         }
 
-        /* --- 高级感细节：动态光效 --- */
-
-        /* 模拟页面翻转时的书脊阴影 */
+        /* 装饰性阴影：书脊位置的光影变化 */
         .front::after, .back::after {
             content: '';
             position: absolute;
@@ -82,47 +73,28 @@
             width: 40px;
             height: 100%;
             pointer-events: none;
-            transition: opacity 1.2s;
         }
 
-        /* 正面右侧（靠近书脊处）的暗影 */
         .front::after {
             left: 0;
             background: linear-gradient(to right, rgba(0,0,0,0.3), transparent);
-            opacity: 1;
         }
 
-        /* 翻过去后，背面左侧（靠近书脊处）的深色褶皱影 */
         .back::after {
             left: 0;
             background: linear-gradient(to right, rgba(0,0,0,0.6), transparent);
         }
-
-        /* 翻转过程中的高光掠过效果（可选） */
-        .page:not(.flipped) .front::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 200%; height: 100%;
-            background: linear-gradient(110deg, rgba(255,255,255,0) 20%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0) 80%);
-            transform: translateX(-100%);
-            transition: transform 1.2s;
-            z-index: 2;
-        }
-        .page.flipped .front::before {
-            transform: translateX(100%);
-        }
-
     </style>
 </head>
 <body>
 
 <div class="book-container" id="bookContainer">
-    <div class="page" onclick="flipPage(this, true, 0)">
+    <div class="page" onclick="flipPage(this)">
         <div class="front"><img src="./截屏2026-04-25 15.50.13.png"></div>
         <div class="back"><img src="./截屏2026-04-25 15.50.00.png"></div>
     </div>
 
-    <div class="page" onclick="flipPage(this, false, 1)">
+    <div class="page" onclick="flipPage(this)">
         <div class="front"><img src="./截屏2026-04-25 15.56.52.png"></div>
         <div class="back"><img src="./截屏2026-04-25 15.55.20.png"></div>
     </div>
@@ -131,38 +103,48 @@
 <script>
     const container = document.getElementById('bookContainer');
     const pages = document.querySelectorAll('.page');
-    const totalPages = pages.length;
 
-    function flipPage(pageElement, isCover, pageIndex) {
+    function flipPage(pageElement) {
+        const allPages = Array.from(pages);
+        const index = allPages.indexOf(pageElement);
         const isFlippingToBack = !pageElement.classList.contains('flipped');
         
-        if (!isFlippingToBack) {
-            // 向回翻
-            pageElement.classList.remove('flipped');
-            if (isCover) container.classList.remove('open');
-            
-            // 如果翻回来的是最后一页，移除final-page类
-            if (pageIndex === totalPages - 1) {
-                container.classList.remove('final-page');
+        const isFirstPage = (index === 0);
+        const isLastPage = (index === allPages.length - 1);
+
+        if (isFlippingToBack) {
+            // --- 向前翻 ---
+            pageElement.classList.add('flipped');
+            pageElement.style.zIndex = 100 + index; // 提升层级
+
+            // 位移逻辑
+            if (isFirstPage) {
+                container.classList.add('open');
             }
+            // 如果只有两页，或者翻到了最后一页，需要把书柜位移拉回来
+            if (isLastPage) {
+                container.classList.remove('open');
+            }
+        } else {
+            // --- 向回翻 ---
+            pageElement.classList.remove('flipped');
             
+            // 位移逻辑
+            if (isFirstPage) {
+                container.classList.remove('open');
+            }
+            if (isLastPage) {
+                container.classList.add('open');
+            }
+
+            // 延迟恢复原始 z-index，防止翻转过程中穿模
             setTimeout(() => { 
                 pageElement.style.zIndex = pageElement.dataset.originalZ; 
-            }, 600); // 延迟回归层级，避免穿插
-        } else {
-            // 向前翻
-            pageElement.classList.add('flipped');
-            if (isCover) container.classList.add('open');
-            
-            // 如果翻的是最后一页，添加final-page类让书返回正中心
-            if (pageIndex === totalPages - 1) {
-                container.classList.add('final-page');
-            }
-            
-            pageElement.style.zIndex = 100;
+            }, 600);
         }
     }
 
+    // 初始化：设置初始层级
     pages.forEach((page, index) => {
         const z = pages.length - index;
         page.style.zIndex = z;
