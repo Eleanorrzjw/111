@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>高级感电子书模型 - 全自动居中版</title>
+    <title>高级感电子书模型 - 居中修正终版</title>
     <style>
         body {
             background-color: #000;
@@ -19,14 +19,20 @@
             position: relative;
             width: 463px;
             height: 770px;
-            /* 丝滑的平移过渡 */
             transition: transform 1.2s cubic-bezier(0.28, 0.11, 0.32, 1);
             perspective: 2500px;
+            /* 初始位置：封面居中 */
+            transform: translateX(0); 
         }
 
-        /* 展开状态：书脊右移半个书宽，使左右对开居中 */
+        /* 状态 1：中间双页展开，书脊右移半宽，使左右对称居中 */
         .book-container.open {
             transform: translateX(231.5px);
+        }
+
+        /* 状态 2：最后一页翻开后，通过左移抵消翻页位移，使封底居中 */
+        .book-container.last-page-open {
+            transform: translateX(463px);
         }
 
         .page {
@@ -65,7 +71,6 @@
             transform: rotateY(-180deg);
         }
 
-        /* 装饰性阴影：书脊位置的光影变化 */
         .front::after, .back::after {
             content: '';
             position: absolute;
@@ -113,38 +118,34 @@
         const isLastPage = (index === allPages.length - 1);
 
         if (isFlippingToBack) {
-            // --- 向前翻 ---
             pageElement.classList.add('flipped');
-            pageElement.style.zIndex = 100 + index; // 提升层级
+            pageElement.style.zIndex = 100 + index;
 
-            // 位移逻辑
             if (isFirstPage) {
                 container.classList.add('open');
             }
-            // 如果只有两页，或者翻到了最后一页，需要把书柜位移拉回来
             if (isLastPage) {
+                // 关键点：最后一页翻开时，容器需要更大幅度的位移来把页面“拉回”中心
                 container.classList.remove('open');
+                container.classList.add('last-page-open');
             }
         } else {
-            // --- 向回翻 ---
             pageElement.classList.remove('flipped');
             
-            // 位移逻辑
             if (isFirstPage) {
                 container.classList.remove('open');
             }
             if (isLastPage) {
+                container.classList.remove('last-page-open');
                 container.classList.add('open');
             }
 
-            // 延迟恢复原始 z-index，防止翻转过程中穿模
             setTimeout(() => { 
                 pageElement.style.zIndex = pageElement.dataset.originalZ; 
             }, 600);
         }
     }
 
-    // 初始化：设置初始层级
     pages.forEach((page, index) => {
         const z = pages.length - index;
         page.style.zIndex = z;
